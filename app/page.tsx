@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronRight, CircleHelp, ExternalLink, Flame, Gear, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
+import { Check, ChevronRight, CircleHelp, ExternalLink, Flame, Settings, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
 
 type Screen = "welcome" | "pincode" | "priority" | "home" | "settings";
 type Deal = {
@@ -209,7 +209,7 @@ function Home({ pincode, threshold, showMocks, setShowMocks, onSettings }: { pin
       <header className="sticky top-0 z-10 border-b border-border bg-white/90 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between">
           <div><Brand /><p className="mt-1 pl-7 text-[11px] text-muted">Delivering to {pincode}</p></div>
-          <button onClick={onSettings} className="icon-button" aria-label="Settings"><Gear size={19} /></button>
+          <button onClick={onSettings} className="icon-button" aria-label="Settings"><Settings size={19} /></button>
         </div>
       </header>
       <section className="mx-auto max-w-xl px-4 pb-12 pt-5">
