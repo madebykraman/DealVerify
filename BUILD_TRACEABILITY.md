@@ -60,3 +60,10 @@ The current onboarding persists settings in browser localStorage so the vertical
 ### Current boundary
 
 The Amazon endpoint currently accepts a caller-supplied deliverable flag and recentPrices only as an ingestion prototype. These values must move to trusted backend acquisition—pincode-specific marketplace checks and persisted price observations—before the endpoint can create a verified_deals row or trigger notifications. No notification or verified-deal write is currently performed by this endpoint.
+
+
+### Authenticated feed wiring
+- app/api/deals/route.ts derives the feed pincode from the authenticated user's stored settings rather than accepting a caller-selected pincode.
+- app/page.tsx loads persisted Supabase settings/deals when a session exists and falls back to local onboarding state for anonymous prototype use.
+- app/api/settings/route.ts returns 401 for unauthenticated writes instead of treating them as server failures.
+- Anonymous users are not shown fabricated backend deals; mock cards remain an explicit preview mode only.
