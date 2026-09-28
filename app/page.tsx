@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ChevronRight, CircleHelp, ExternalLink, Flame, Settings, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
 
 type Screen = "splash" | "welcome" | "pincode" | "priority" | "home" | "settings";
