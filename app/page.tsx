@@ -11,6 +11,8 @@ type Deal = {
   history: string;
   source: string;
   posted: string;
+  productUrl?: string;
+  originalPostUrl?: string;
 };
 
 const MOCK_DEALS: Deal[] = [
@@ -189,8 +191,8 @@ function DealCard({ deal, threshold }: { deal: Deal; threshold: number }) {
       <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-muted">
         <span>{deal.source}</span>
         <div className="flex gap-4">
-          <a href="#" onClick={(e) => e.preventDefault()} className="font-medium text-trust">View Product <ExternalLink size={13} className="inline" /></a>
-          <a href="#" onClick={(e) => e.preventDefault()} className="font-medium text-slate-600">Original Post</a>
+          {deal.productUrl ? <a href={deal.productUrl} target="_blank" rel="noreferrer" className="font-medium text-trust">View Product <ExternalLink size={13} className="inline" /></a> : <span className="text-slate-300">View Product</span>}
+          {deal.originalPostUrl ? <a href={deal.originalPostUrl} target="_blank" rel="noreferrer" className="font-medium text-slate-600">Original Post</a> : <span className="text-slate-300">Original Post</span>}
         </div>
       </div>
     </article>
@@ -212,8 +214,7 @@ function EmptyState({ pincode }: { pincode: string }) {
   );
 }
 
-function Home({ pincode, threshold, showMocks, setShowMocks, onSettings }: { pincode: string; threshold: number; showMocks: boolean; setShowMocks: (v: boolean) => void; onSettings: () => void }) {
-  const deals = useMemo(() => showMocks ? MOCK_DEALS : [], [showMocks]);
+function Home({ pincode, threshold, showMocks, setShowMocks, onSettings, deals, authenticated }: { pincode: string; threshold: number; showMocks: boolean; setShowMocks: (v: boolean) => void; onSettings: () => void; deals: Deal[]; authenticated: boolean }) {
   return (
     <main className="min-h-dvh bg-surface">
       <header className="sticky top-0 z-10 border-b border-border bg-white/90 px-4 py-3 backdrop-blur">
@@ -228,6 +229,7 @@ function Home({ pincode, threshold, showMocks, setShowMocks, onSettings }: { pin
           <button onClick={() => setShowMocks(!showMocks)} className="rounded-full border border-border bg-white px-3 py-2 text-xs font-medium text-slate-600">{showMocks ? "Show empty" : "Preview deals"}</button>
         </div>
         {deals.length ? deals.map((deal) => <DealCard key={deal.id} deal={deal} threshold={threshold} />) : <EmptyState pincode={pincode} />}
+        {!authenticated && !showMocks && <p className="mx-auto mt-2 max-w-sm text-center text-xs text-slate-400">Sign in to sync verified deals and settings across devices.</p>}
       </section>
     </main>
   );
@@ -256,10 +258,56 @@ export default function Page() {
   const [pincode, setPincode] = useState("");
   const [threshold, setThreshold] = useState(500);
   const [showMocks, setShowMocks] = useState(false);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [authenticated, setAuthenticated] = useState(false);
+
+  const saveLocal = (nextPincode: string, nextThreshold: number) => {
+    localStorage.setItem("dealverify.settings", JSON.stringify({ pincode: nextPincode, threshold: nextThreshold }));
+  };
+
+  const syncSettings = async (nextPincode: string, nextThreshold: number) => {
+    saveLocal(nextPincode, nextThreshold);
+    try {
+      const response = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pincode: nextPincode, high_priority_threshold: nextThreshold })
+      });
+      setAuthenticated(response.ok);
+    } catch {
+      setAuthenticated(false);
+    }
+  };
+
+  const loadDeals = async () => {
+    if (!pincode) return;
+    try {
+      const response = await fetch("/api/deals", { cache: "no-store" });
+      if (!response.ok) {
+        setAuthenticated(response.status !== 401);
+        return;
+      }
+      const data = await response.json();
+      setAuthenticated(Boolean(data.authenticated));
+      setDeals((data.deals ?? []).map((deal: Record<string, unknown>) => ({
+        id: String(deal.id),
+        title: String(deal.product_title),
+        price: Number(deal.verified_price),
+        history: String(deal.history_note),
+        source: String(deal.source_handle ?? "DealVerify"),
+        posted: String(deal.first_seen_at ?? ""),
+        productUrl: typeof deal.product_url === "string" ? deal.product_url : undefined,
+        originalPostUrl: typeof deal.x_post_url === "string" ? deal.x_post_url : undefined
+      })));
+    } catch {
+      setDeals([]);
+    }
+  };
 
   useEffect(() => {
     const splashTimer = window.setTimeout(() => setScreen((current) => current === "splash" ? "welcome" : current), 1400);
     const saved = localStorage.getItem("dealverify.settings");
+
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -268,17 +316,44 @@ export default function Page() {
         setScreen("home");
       } catch {}
     }
+
+    fetch("/api/settings", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.settings) {
+          setAuthenticated(true);
+          setPincode(data.settings.pincode);
+          setThreshold(data.settings.high_priority_threshold);
+          saveLocal(data.settings.pincode, data.settings.high_priority_threshold);
+          setScreen("home");
+        }
+      })
+      .catch(() => {});
+
     return () => window.clearTimeout(splashTimer);
   }, []);
 
-  const finish = () => {
-    localStorage.setItem("dealverify.settings", JSON.stringify({ pincode, threshold }));
+  useEffect(() => {
+    if (screen === "home" && pincode && !showMocks) void loadDeals();
+  }, [screen, pincode, showMocks]);
+
+  const finish = async () => {
+    await syncSettings(pincode, threshold);
     setScreen("home");
   };
 
-  if (screen === "splash") return <Splash />;\n  if (screen === "welcome") return <Welcome onNext={() => setScreen("pincode")} />;
+  const saveAndHome = async () => {
+    await syncSettings(pincode, threshold);
+    setScreen("home");
+  };
+
+  const displayDeals = showMocks ? MOCK_DEALS : deals;
+
+  if (screen === "splash") return <Splash />;
+  if (screen === "welcome") return <Welcome onNext={() => setScreen("pincode")} />;
   if (screen === "pincode") return <Pincode value={pincode} setValue={setPincode} onNext={() => setScreen("priority")} onBack={() => setScreen("welcome")} />;
   if (screen === "priority") return <Priority value={threshold} setValue={setThreshold} onNext={finish} onBack={() => setScreen("pincode")} />;
-  if (screen === "settings") return <Settings pincode={pincode} setPincode={setPincode} threshold={threshold} setThreshold={setThreshold} onBack={() => { localStorage.setItem("dealverify.settings", JSON.stringify({ pincode, threshold })); setScreen("home"); }} />;
-  return <Home pincode={pincode} threshold={threshold} showMocks={showMocks} setShowMocks={setShowMocks} onSettings={() => setScreen("settings")} />;
+  if (screen === "settings") return <Settings pincode={pincode} setPincode={setPincode} threshold={threshold} setThreshold={setThreshold} onBack={saveAndHome} />;
+  return <Home pincode={pincode} threshold={threshold} showMocks={showMocks} setShowMocks={setShowMocks} onSettings={() => setScreen("settings")} deals={displayDeals} authenticated={authenticated} />;
 }
