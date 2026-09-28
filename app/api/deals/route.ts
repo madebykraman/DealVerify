@@ -9,7 +9,7 @@ export async function GET() {
       return NextResponse.json({ authenticated: false, deals: [] }, { status: 401 });
     }
 
-    const deals = await getVerifiedDeals(settings.pincode);
+    const deals = await getVerifiedDeals(settings.pincode, settings.high_priority_threshold);
     return NextResponse.json({ authenticated: true, deals });
   } catch {
     return NextResponse.json({ error: "Unable to load verified deals." }, { status: 500 });
