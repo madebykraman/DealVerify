@@ -258,6 +258,7 @@ export default function Page() {
   const [showMocks, setShowMocks] = useState(false);
 
   useEffect(() => {
+    const splashTimer = window.setTimeout(() => setScreen((current) => current === "splash" ? "welcome" : current), 1400);
     const saved = localStorage.getItem("dealverify.settings");
     if (saved) {
       try {
@@ -267,6 +268,7 @@ export default function Page() {
         setScreen("home");
       } catch {}
     }
+    return () => window.clearTimeout(splashTimer);
   }, []);
 
   const finish = () => {
