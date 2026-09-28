@@ -9,7 +9,6 @@ type Deal = {
   title: string;
   price: number;
   history: string;
-  highPriority?: boolean;
   source: string;
   posted: string;
 };
@@ -20,7 +19,6 @@ const MOCK_DEALS: Deal[] = [
     title: "Protinex Original Nutrition Drink Mix, 400g",
     price: 267,
     history: "Near 30-day low",
-    highPriority: true,
     source: "@dealztrendz",
     posted: "8m ago"
   },
