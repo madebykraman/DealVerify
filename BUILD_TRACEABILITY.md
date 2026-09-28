@@ -42,3 +42,21 @@ These are the core trust rules, not optional UI copy. fileciteturn0file0�
 ## Known prototype limitation
 
 The current onboarding persists settings in browser localStorage so the vertical slice can be exercised without credentials. This is a prototype convenience, not the final secure persistence layer. The production path is Supabase Auth + the RLS-protected users table.
+
+
+## Second vertical slice
+
+| Brief area | Requirement | Status |
+| --- | --- | --- |
+| Auth | Optional account persistence without forcing auth into the core deal-feed UX | Magic-link auth route implemented |
+| Persistence | User pincode + priority threshold | Supabase repository + authenticated API implemented |
+| Feed data | Read verified deals scoped to exact pincode | Server repository + API implemented |
+| Amazon | Product extraction from Amazon.in | Constrained extractor implemented |
+| Verification | Price + stock/delivery + history gates | Deterministic verifier implemented |
+| Deduplication | Canonical URL/ASIN/FSN identity | Canonicalization module implemented |
+| Security | No arbitrary URL fetching from ingestion endpoint | Amazon.in HTTPS allowlist + redirect rejection + auth |
+| Existing production data | Do not modify unrelated connected Supabase project | Explicitly avoided; connected project is unrelated minimical-drop |
+
+### Current boundary
+
+The Amazon endpoint currently accepts a caller-supplied deliverable flag and recentPrices only as an ingestion prototype. These values must move to trusted backend acquisition—pincode-specific marketplace checks and persisted price observations—before the endpoint can create a verified_deals row or trigger notifications. No notification or verified-deal write is currently performed by this endpoint.
