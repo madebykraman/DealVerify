@@ -25,6 +25,11 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Priority threshold is invalid." }, { status: 400 });
     }
 
+    const currentSettings = await getCurrentUserSettings();
+    if (!currentSettings) {
+      return NextResponse.json({ authenticated: false }, { status: 401 });
+    }
+
     const settings = await upsertUserSettings({
       pincode,
       high_priority_threshold: Math.round(threshold)
