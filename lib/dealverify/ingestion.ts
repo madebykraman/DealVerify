@@ -15,6 +15,9 @@ export type TrustedDealCandidate = Omit<VerificationInput, "recentPrices"> & {
 export async function persistVerifiedCandidate(candidate: TrustedDealCandidate) {
   if (!/^\d{6}$/.test(candidate.pincode)) throw new Error("Invalid pincode.");
   if (!candidate.productTitle.trim()) throw new Error("Product title is required.");
+  if (candidate.livePrice === null || !Number.isFinite(candidate.livePrice) || candidate.livePrice < 0) {
+    throw new Error("A valid live price is required.");
+  }
 
   const canonicalKey = canonicalizeDeal({
     asin: candidate.asin,
