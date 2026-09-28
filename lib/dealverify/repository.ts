@@ -42,7 +42,7 @@ export async function upsertUserSettings(input: {
   return data;
 }
 
-export async function getVerifiedDeals(pincode: string): Promise<VerifiedDeal[]> {
+export async function getVerifiedDeals(pincode: string, highPriorityThreshold: number): Promise<VerifiedDeal[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -52,9 +52,17 @@ export async function getVerifiedDeals(pincode: string): Promise<VerifiedDeal[]>
     )
     .eq("pincode_checked", pincode)
     .or("expires_at.is.null,expires_at.gt.now()")
-    .order("is_high_priority", { ascending: false })
     .order("first_seen_at", { ascending: false });
 
   if (error) throw error;
-  return data ?? [];
+
+  return (data ?? [])
+    .map((deal) => ({
+      ...deal,
+      is_high_priority: Number(deal.verified_price) <= highPriorityThreshold
+    }))
+    .sort((a, b) => {
+      if (a.is_high_priority !== b.is_high_priority) return a.is_high_priority ? -1 : 1;
+      return new Date(b.first_seen_at).getTime() - new Date(a.first_seen_at).getTime();
+    });
 }
