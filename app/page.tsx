@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronRight, CircleHelp, ExternalLink, Flame, Settings, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
 
-type Screen = "welcome" | "pincode" | "priority" | "home" | "settings";
+type Screen = "splash" | "welcome" | "pincode" | "priority" | "home" | "settings";
 type Deal = {
   id: string;
   title: string;
@@ -59,6 +59,18 @@ function Progress({ step, total = 3 }: { step: number; total?: number }) {
         <span key={i} className={`h-1 rounded-full transition-all ${i < step ? "w-8 bg-trust" : "w-2 bg-slate-200"}`} />
       ))}
     </div>
+  );
+}
+
+function Splash() {
+  return (
+    <main className="flex min-h-dvh items-center justify-center bg-white px-5">
+      <div className="flex flex-col items-center text-center">
+        <span className="brand-mark h-14 w-14 rounded-[17px]"><Check size={28} strokeWidth={3} /></span>
+        <div className="mt-5 text-[21px] font-semibold tracking-[-0.04em] text-ink">DealVerify</div>
+        <p className="mt-1.5 text-sm text-muted">Only real deals. Verified.</p>
+      </div>
+    </main>
   );
 }
 
@@ -242,7 +254,7 @@ function Settings({ pincode, setPincode, threshold, setThreshold, onBack }: { pi
 }
 
 export default function Page() {
-  const [screen, setScreen] = useState<Screen>("welcome");
+  const [screen, setScreen] = useState<Screen>("splash");
   const [pincode, setPincode] = useState("");
   const [threshold, setThreshold] = useState(500);
   const [showMocks, setShowMocks] = useState(false);
@@ -264,7 +276,7 @@ export default function Page() {
     setScreen("home");
   };
 
-  if (screen === "welcome") return <Welcome onNext={() => setScreen("pincode")} />;
+  if (screen === "splash") return <Splash />;\n  if (screen === "welcome") return <Welcome onNext={() => setScreen("pincode")} />;
   if (screen === "pincode") return <Pincode value={pincode} setValue={setPincode} onNext={() => setScreen("priority")} onBack={() => setScreen("welcome")} />;
   if (screen === "priority") return <Priority value={threshold} setValue={setThreshold} onNext={finish} onBack={() => setScreen("pincode")} />;
   if (screen === "settings") return <Settings pincode={pincode} setPincode={setPincode} threshold={threshold} setThreshold={setThreshold} onBack={() => { localStorage.setItem("dealverify.settings", JSON.stringify({ pincode, threshold })); setScreen("home"); }} />;
