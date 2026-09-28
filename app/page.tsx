@@ -1,17 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ChevronRight, CircleHelp, ExternalLink, Flame, Settings, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
 
-type Screen = "welcome" | "pincode" | "priority" | "home" | "settings";
+type Screen = "splash" | "welcome" | "pincode" | "priority" | "home" | "settings";
 type Deal = {
   id: string;
   title: string;
   price: number;
   history: string;
-  highPriority?: boolean;
   source: string;
   posted: string;
+  productUrl?: string;
+  originalPostUrl?: string;
 };
 
 const MOCK_DEALS: Deal[] = [
@@ -20,7 +21,6 @@ const MOCK_DEALS: Deal[] = [
     title: "Protinex Original Nutrition Drink Mix, 400g",
     price: 267,
     history: "Near 30-day low",
-    highPriority: true,
     source: "@dealztrendz",
     posted: "8m ago"
   },
@@ -59,6 +59,18 @@ function Progress({ step, total = 3 }: { step: number; total?: number }) {
         <span key={i} className={`h-1 rounded-full transition-all ${i < step ? "w-8 bg-trust" : "w-2 bg-slate-200"}`} />
       ))}
     </div>
+  );
+}
+
+function Splash() {
+  return (
+    <main className="flex min-h-dvh items-center justify-center bg-white px-5">
+      <div className="flex flex-col items-center text-center">
+        <span className="brand-mark h-14 w-14 rounded-[17px]"><Check size={28} strokeWidth={3} /></span>
+        <div className="mt-5 text-[21px] font-semibold tracking-[-0.04em] text-ink">DealVerify</div>
+        <p className="mt-1.5 text-sm text-muted">Only real deals. Verified.</p>
+      </div>
+    </main>
   );
 }
 
@@ -157,7 +169,7 @@ function Priority({ value, setValue, onNext, onBack }: { value: number; setValue
 }
 
 function DealCard({ deal, threshold }: { deal: Deal; threshold: number }) {
-  const priority = deal.price <= threshold || deal.highPriority;
+  const priority = deal.price <= threshold;
   return (
     <article className={`deal-card ${priority ? "deal-card-priority" : ""}`}>
       <div className="flex items-start justify-between gap-3">
@@ -179,8 +191,8 @@ function DealCard({ deal, threshold }: { deal: Deal; threshold: number }) {
       <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-muted">
         <span>{deal.source}</span>
         <div className="flex gap-4">
-          <a href="#" onClick={(e) => e.preventDefault()} className="font-medium text-trust">View Product <ExternalLink size={13} className="inline" /></a>
-          <a href="#" onClick={(e) => e.preventDefault()} className="font-medium text-slate-600">Original Post</a>
+          {deal.productUrl ? <a href={deal.productUrl} target="_blank" rel="noreferrer" className="font-medium text-trust">View Product <ExternalLink size={13} className="inline" /></a> : <span className="text-slate-300">View Product</span>}
+          {deal.originalPostUrl ? <a href={deal.originalPostUrl} target="_blank" rel="noreferrer" className="font-medium text-slate-600">Original Post</a> : <span className="text-slate-300">Original Post</span>}
         </div>
       </div>
     </article>
@@ -202,8 +214,7 @@ function EmptyState({ pincode }: { pincode: string }) {
   );
 }
 
-function Home({ pincode, threshold, showMocks, setShowMocks, onSettings }: { pincode: string; threshold: number; showMocks: boolean; setShowMocks: (v: boolean) => void; onSettings: () => void }) {
-  const deals = useMemo(() => showMocks ? MOCK_DEALS : [], [showMocks]);
+function Home({ pincode, threshold, showMocks, setShowMocks, onSettings, deals, authenticated }: { pincode: string; threshold: number; showMocks: boolean; setShowMocks: (v: boolean) => void; onSettings: () => void; deals: Deal[]; authenticated: boolean }) {
   return (
     <main className="min-h-dvh bg-surface">
       <header className="sticky top-0 z-10 border-b border-border bg-white/90 px-4 py-3 backdrop-blur">
@@ -218,12 +229,13 @@ function Home({ pincode, threshold, showMocks, setShowMocks, onSettings }: { pin
           <button onClick={() => setShowMocks(!showMocks)} className="rounded-full border border-border bg-white px-3 py-2 text-xs font-medium text-slate-600">{showMocks ? "Show empty" : "Preview deals"}</button>
         </div>
         {deals.length ? deals.map((deal) => <DealCard key={deal.id} deal={deal} threshold={threshold} />) : <EmptyState pincode={pincode} />}
+        {!authenticated && !showMocks && <p className="mx-auto mt-2 max-w-sm text-center text-xs text-slate-400">Sign in to sync verified deals and settings across devices.</p>}
       </section>
     </main>
   );
 }
 
-function Settings({ pincode, setPincode, threshold, setThreshold, onBack }: { pincode: string; setPincode: (v: string) => void; threshold: number; setThreshold: (v: number) => void; onBack: () => void }) {
+function Settings({ pincode, setPincode, threshold, setThreshold, onBack, authenticated }: { pincode: string; setPincode: (v: string) => void; threshold: number; setThreshold: (v: number) => void; onBack: () => void; authenticated: boolean }) {
   return (
     <main className="min-h-dvh bg-surface">
       <header className="border-b border-border bg-white px-4 py-3"><div className="mx-auto flex max-w-xl items-center justify-between"><Brand /><button onClick={onBack} className="icon-button"><X size={18} /></button></div></header>
@@ -234,6 +246,7 @@ function Settings({ pincode, setPincode, threshold, setThreshold, onBack }: { pi
           <label className="block border-b border-border p-4"><span className="text-sm font-semibold text-ink">Pincode</span><span className="mt-1 block text-xs text-muted">Used for live delivery checks.</span><input inputMode="numeric" maxLength={6} value={pincode} onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0,6))} className="mt-3 w-full rounded-xl border border-border px-3 py-3 text-base outline-none focus:border-trust" /></label>
           <label className="block p-4"><span className="text-sm font-semibold text-ink">High-priority threshold</span><span className="mt-1 block text-xs text-muted">Deals at or below this amount float to the top.</span><div className="mt-4 flex items-center gap-3"><span className="text-xl font-semibold">₹</span><input inputMode="numeric" value={threshold} onChange={(e) => setThreshold(Number(e.target.value.replace(/\D/g,"")) || 0)} className="w-full rounded-xl border border-border px-3 py-3 text-base outline-none focus:border-trust" /></div></label>
         </div>
+        {!authenticated && <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-4"><p className="text-sm font-semibold text-ink">Sync across devices</p><p className="mt-1 text-xs leading-5 text-muted">Sign in to persist your pincode and receive the verified feed from Supabase.</p><a href="/login" className="mt-3 inline-flex text-sm font-semibold text-trust">Sign in <ChevronRight size={15} /></a></div>}
         <div className="mt-5 rounded-2xl border border-border bg-white p-4"><div className="flex gap-3"><SlidersHorizontal size={18} className="mt-0.5 text-trust" /><div><p className="text-sm font-semibold text-ink">How verification works</p><p className="mt-1 text-xs leading-5 text-muted">Price match + pincode availability + recent price value. A failed check is discarded silently.</p></div></div></div>
         <p className="mt-6 text-center text-xs text-slate-400">DealVerify v0.1 • Only real deals. Verified.</p>
       </section>
@@ -242,13 +255,60 @@ function Settings({ pincode, setPincode, threshold, setThreshold, onBack }: { pi
 }
 
 export default function Page() {
-  const [screen, setScreen] = useState<Screen>("welcome");
+  const [screen, setScreen] = useState<Screen>("splash");
   const [pincode, setPincode] = useState("");
   const [threshold, setThreshold] = useState(500);
   const [showMocks, setShowMocks] = useState(false);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [authenticated, setAuthenticated] = useState(false);
+
+  const saveLocal = (nextPincode: string, nextThreshold: number) => {
+    localStorage.setItem("dealverify.settings", JSON.stringify({ pincode: nextPincode, threshold: nextThreshold }));
+  };
+
+  const syncSettings = async (nextPincode: string, nextThreshold: number) => {
+    saveLocal(nextPincode, nextThreshold);
+    try {
+      const response = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pincode: nextPincode, high_priority_threshold: nextThreshold })
+      });
+      setAuthenticated(response.ok);
+    } catch {
+      setAuthenticated(false);
+    }
+  };
+
+  const loadDeals = async () => {
+    if (!pincode) return;
+    try {
+      const response = await fetch("/api/deals", { cache: "no-store" });
+      if (!response.ok) {
+        setAuthenticated(response.status !== 401);
+        return;
+      }
+      const data = await response.json();
+      setAuthenticated(Boolean(data.authenticated));
+      setDeals((data.deals ?? []).map((deal: Record<string, unknown>) => ({
+        id: String(deal.id),
+        title: String(deal.product_title),
+        price: Number(deal.verified_price),
+        history: String(deal.history_note),
+        source: String(deal.source_handle ?? "DealVerify"),
+        posted: String(deal.first_seen_at ?? ""),
+        productUrl: typeof deal.product_url === "string" ? deal.product_url : undefined,
+        originalPostUrl: typeof deal.x_post_url === "string" ? deal.x_post_url : undefined
+      })));
+    } catch {
+      setDeals([]);
+    }
+  };
 
   useEffect(() => {
+    const splashTimer = window.setTimeout(() => setScreen((current) => current === "splash" ? "welcome" : current), 1400);
     const saved = localStorage.getItem("dealverify.settings");
+
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -257,16 +317,44 @@ export default function Page() {
         setScreen("home");
       } catch {}
     }
+
+    fetch("/api/settings", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.settings) {
+          setAuthenticated(true);
+          setPincode(data.settings.pincode);
+          setThreshold(data.settings.high_priority_threshold);
+          saveLocal(data.settings.pincode, data.settings.high_priority_threshold);
+          setScreen("home");
+        }
+      })
+      .catch(() => {});
+
+    return () => window.clearTimeout(splashTimer);
   }, []);
 
-  const finish = () => {
-    localStorage.setItem("dealverify.settings", JSON.stringify({ pincode, threshold }));
+  useEffect(() => {
+    if (screen === "home" && pincode && !showMocks) void loadDeals();
+  }, [screen, pincode, showMocks]);
+
+  const finish = async () => {
+    await syncSettings(pincode, threshold);
     setScreen("home");
   };
 
+  const saveAndHome = async () => {
+    await syncSettings(pincode, threshold);
+    setScreen("home");
+  };
+
+  const displayDeals = showMocks ? MOCK_DEALS : deals;
+
+  if (screen === "splash") return <Splash />;
   if (screen === "welcome") return <Welcome onNext={() => setScreen("pincode")} />;
   if (screen === "pincode") return <Pincode value={pincode} setValue={setPincode} onNext={() => setScreen("priority")} onBack={() => setScreen("welcome")} />;
   if (screen === "priority") return <Priority value={threshold} setValue={setThreshold} onNext={finish} onBack={() => setScreen("pincode")} />;
-  if (screen === "settings") return <Settings pincode={pincode} setPincode={setPincode} threshold={threshold} setThreshold={setThreshold} onBack={() => { localStorage.setItem("dealverify.settings", JSON.stringify({ pincode, threshold })); setScreen("home"); }} />;
-  return <Home pincode={pincode} threshold={threshold} showMocks={showMocks} setShowMocks={setShowMocks} onSettings={() => setScreen("settings")} />;
+  if (screen === "settings") return <Settings pincode={pincode} setPincode={setPincode} threshold={threshold} setThreshold={setThreshold} onBack={saveAndHome} authenticated={authenticated} />;
+  return <Home pincode={pincode} threshold={threshold} showMocks={showMocks} setShowMocks={setShowMocks} onSettings={() => setScreen("settings")} deals={displayDeals} authenticated={authenticated} />;
 }
