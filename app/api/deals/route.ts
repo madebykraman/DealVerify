@@ -1,17 +1,16 @@
 import { NextResponse } from "next/server";
-import { getVerifiedDeals } from "@/lib/dealverify/repository";
+import { getCurrentUserSettings, getVerifiedDeals } from "@/lib/dealverify/repository";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const url = new URL(request.url);
-    const pincode = url.searchParams.get("pincode") ?? "";
+    const settings = await getCurrentUserSettings();
 
-    if (!/^\d{6}$/.test(pincode)) {
-      return NextResponse.json({ error: "Valid pincode required." }, { status: 400 });
+    if (!settings) {
+      return NextResponse.json({ authenticated: false, deals: [] }, { status: 401 });
     }
 
-    const deals = await getVerifiedDeals(pincode);
-    return NextResponse.json({ deals });
+    const deals = await getVerifiedDeals(settings.pincode);
+    return NextResponse.json({ authenticated: true, deals });
   } catch {
     return NextResponse.json({ error: "Unable to load verified deals." }, { status: 500 });
   }
