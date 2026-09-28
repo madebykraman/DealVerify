@@ -6,7 +6,8 @@ export const metadata: Metadata = {
   title: "DealVerify — Only real deals. Verified.",
   description: "Verified Indian deal alerts for price, pincode availability, and recent value.",
   applicationName: "DealVerify",
-  manifest: "/manifest.webmanifest"
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/icon.svg", apple: "/icon.svg" }
 };
 
 export const viewport: Viewport = {
