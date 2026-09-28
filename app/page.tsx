@@ -169,7 +169,7 @@ function Priority({ value, setValue, onNext, onBack }: { value: number; setValue
 }
 
 function DealCard({ deal, threshold }: { deal: Deal; threshold: number }) {
-  const priority = deal.price <= threshold || deal.highPriority;
+  const priority = deal.price <= threshold;
   return (
     <article className={`deal-card ${priority ? "deal-card-priority" : ""}`}>
       <div className="flex items-start justify-between gap-3">
