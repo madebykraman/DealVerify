@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { assertAmazonIndiaUrl, extractAmazonProduct } from "@/lib/extractors/amazon";
 import { canonicalizeDeal } from "@/lib/canonicalize";
 import { verifyCandidate } from "@/lib/verification";
 
 export async function POST(request: Request) {
   try {
+    const supabase = await createClient();
+    const { data: claimsData } = await supabase.auth.getClaims();
+    if (!claimsData?.claims?.sub) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+
     const body = await request.json();
     const claimedPrice = Number(body.claimedPrice);
     const recentPrices = Array.isArray(body.recentPrices) ? body.recentPrices.map(Number) : [];
@@ -20,11 +25,11 @@ export async function POST(request: Request) {
         "User-Agent": "DealVerify/0.1 (+verified-deal-fetcher)",
         "Accept-Language": "en-IN,en;q=0.9"
       },
-      redirect: "follow",
+      redirect: "manual",
       cache: "no-store"
     });
 
-    if (!response.ok) {
+    if (response.status >= 300 && response.status < 400) {\n      return NextResponse.json({ error: "Redirected product URLs are rejected." }, { status: 400 });\n    }\n\n    if (!response.ok) {
       return NextResponse.json({ error: "Amazon product could not be fetched." }, { status: 502 });
     }
 
