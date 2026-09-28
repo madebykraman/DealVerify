@@ -10,7 +10,7 @@ export type VerifiedDeal = {
   verified_price: number;
   claimed_price: number;
   product_url: string;
-  x_post_url: string;
+  x_post_url: string | null;
   history_note: "Near 30-day low" | "Significant drop" | "Average" | "Insufficient history";
   is_high_priority: boolean;
   pincode_checked: string;
