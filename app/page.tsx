@@ -235,7 +235,7 @@ function Home({ pincode, threshold, showMocks, setShowMocks, onSettings, deals, 
   );
 }
 
-function Settings({ pincode, setPincode, threshold, setThreshold, onBack }: { pincode: string; setPincode: (v: string) => void; threshold: number; setThreshold: (v: number) => void; onBack: () => void }) {
+function Settings({ pincode, setPincode, threshold, setThreshold, onBack, authenticated }: { pincode: string; setPincode: (v: string) => void; threshold: number; setThreshold: (v: number) => void; onBack: () => void; authenticated: boolean }) {
   return (
     <main className="min-h-dvh bg-surface">
       <header className="border-b border-border bg-white px-4 py-3"><div className="mx-auto flex max-w-xl items-center justify-between"><Brand /><button onClick={onBack} className="icon-button"><X size={18} /></button></div></header>
@@ -246,6 +246,7 @@ function Settings({ pincode, setPincode, threshold, setThreshold, onBack }: { pi
           <label className="block border-b border-border p-4"><span className="text-sm font-semibold text-ink">Pincode</span><span className="mt-1 block text-xs text-muted">Used for live delivery checks.</span><input inputMode="numeric" maxLength={6} value={pincode} onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0,6))} className="mt-3 w-full rounded-xl border border-border px-3 py-3 text-base outline-none focus:border-trust" /></label>
           <label className="block p-4"><span className="text-sm font-semibold text-ink">High-priority threshold</span><span className="mt-1 block text-xs text-muted">Deals at or below this amount float to the top.</span><div className="mt-4 flex items-center gap-3"><span className="text-xl font-semibold">₹</span><input inputMode="numeric" value={threshold} onChange={(e) => setThreshold(Number(e.target.value.replace(/\D/g,"")) || 0)} className="w-full rounded-xl border border-border px-3 py-3 text-base outline-none focus:border-trust" /></div></label>
         </div>
+        {!authenticated && <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-4"><p className="text-sm font-semibold text-ink">Sync across devices</p><p className="mt-1 text-xs leading-5 text-muted">Sign in to persist your pincode and receive the verified feed from Supabase.</p><a href="/login" className="mt-3 inline-flex text-sm font-semibold text-trust">Sign in <ChevronRight size={15} /></a></div>}
         <div className="mt-5 rounded-2xl border border-border bg-white p-4"><div className="flex gap-3"><SlidersHorizontal size={18} className="mt-0.5 text-trust" /><div><p className="text-sm font-semibold text-ink">How verification works</p><p className="mt-1 text-xs leading-5 text-muted">Price match + pincode availability + recent price value. A failed check is discarded silently.</p></div></div></div>
         <p className="mt-6 text-center text-xs text-slate-400">DealVerify v0.1 • Only real deals. Verified.</p>
       </section>
@@ -354,6 +355,6 @@ export default function Page() {
   if (screen === "welcome") return <Welcome onNext={() => setScreen("pincode")} />;
   if (screen === "pincode") return <Pincode value={pincode} setValue={setPincode} onNext={() => setScreen("priority")} onBack={() => setScreen("welcome")} />;
   if (screen === "priority") return <Priority value={threshold} setValue={setThreshold} onNext={finish} onBack={() => setScreen("pincode")} />;
-  if (screen === "settings") return <Settings pincode={pincode} setPincode={setPincode} threshold={threshold} setThreshold={setThreshold} onBack={saveAndHome} />;
+  if (screen === "settings") return <Settings pincode={pincode} setPincode={setPincode} threshold={threshold} setThreshold={setThreshold} onBack={saveAndHome} authenticated={authenticated} />;
   return <Home pincode={pincode} threshold={threshold} showMocks={showMocks} setShowMocks={setShowMocks} onSettings={() => setScreen("settings")} deals={displayDeals} authenticated={authenticated} />;
 }
