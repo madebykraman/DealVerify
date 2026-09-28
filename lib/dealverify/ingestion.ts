@@ -25,6 +25,15 @@ export async function persistVerifiedCandidate(candidate: TrustedDealCandidate) 
 
   const supabase = createAdminClient();
 
+  const { error: observationError } = await supabase
+    .from("price_observations")
+    .insert({
+      canonical_key: canonicalKey,
+      price: candidate.livePrice
+    });
+
+  if (observationError) throw observationError;
+
   const { data: observations, error: historyError } = await supabase
     .from("price_observations")
     .select("price, observed_at")
@@ -34,10 +43,7 @@ export async function persistVerifiedCandidate(candidate: TrustedDealCandidate) 
 
   if (historyError) throw historyError;
 
-  const recentPrices = [
-    ...(observations ?? []).map((row) => Number(row.price)),
-    candidate.livePrice
-  ];
+  const recentPrices = (observations ?? []).map((row) => Number(row.price));
 
   const verification = verifyCandidate({
     claimedPrice: candidate.claimedPrice,
@@ -50,15 +56,6 @@ export async function persistVerifiedCandidate(candidate: TrustedDealCandidate) 
   if (!verification.passed) {
     return { stored: false, verification };
   }
-
-  const { error: observationError } = await supabase
-    .from("price_observations")
-    .insert({
-      canonical_key: canonicalKey,
-      price: candidate.livePrice
-    });
-
-  if (observationError) throw observationError;
 
   const { data: existing } = await supabase
     .from("verified_deals")
