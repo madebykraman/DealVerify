@@ -27,7 +27,7 @@ create table if not exists public.verified_deals (
   verified_price numeric(12,2) not null,
   claimed_price numeric(12,2) not null,
   product_url text not null,
-  x_post_url text not null,
+  x_post_url text,
   history_note text not null,
   is_high_priority boolean not null default false,
   pincode_checked text not null,
@@ -53,6 +53,9 @@ create index if not exists verified_deals_pincode_first_seen_idx
 
 create index if not exists verified_deals_canonical_key_idx
   on public.verified_deals (canonical_key);
+
+create unique index if not exists verified_deals_canonical_pincode_idx
+  on public.verified_deals (canonical_key, pincode_checked);
 
 create index if not exists verified_deals_expires_at_idx
   on public.verified_deals (expires_at);
